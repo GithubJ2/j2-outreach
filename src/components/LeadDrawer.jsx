@@ -18,21 +18,23 @@ export default function LeadDrawer({ leadId, onClose, onChanged, isAdmin }) {
   const [meetings, setMeetings] = useState([])
   const [referrer, setReferrer] = useState(null)
   const [referrals, setReferrals] = useState([])
+  const [assignments, setAssignments] = useState([])
   const [people, setPeople] = useState({})
   const [note, setNote] = useState('')
   const [modal, setModal] = useState(null) // 'status' | 'call' | 'meeting' | 'dnc'
   const [form, setForm] = useState({})
 
   const load = useCallback(async () => {
-    const [l, e, m, p, r] = await Promise.all([
+    const [l, e, m, p, r, a] = await Promise.all([
       supabase.from('leads').select('*, companies(*)').eq('id', leadId).maybeSingle(),
       supabase.from('lead_events').select('*').eq('lead_id', leadId).order('occurred_at', { ascending: false }).limit(100),
       supabase.from('meetings').select('*').eq('lead_id', leadId).order('scheduled_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email'),
       supabase.from('lead_referrals').select('*').eq('from_lead_id', leadId),
+      supabase.from('lead_assignments').select('assigned_at, experiments(id, name, factor, status), experiment_variants(key, name)').eq('lead_id', leadId),
     ])
     if (l.error) return toast.error(l.error.message)
-    setLead(l.data); setEvents(e.data ?? []); setMeetings(m.data ?? []); setReferrals(r.data ?? [])
+    setLead(l.data); setEvents(e.data ?? []); setMeetings(m.data ?? []); setReferrals(r.data ?? []); setAssignments(a.data ?? [])
     setPeople(Object.fromEntries((p.data ?? []).map((x) => [x.id, x])))
     if (l.data?.referred_by_lead_id) {
       const { data: ref } = await supabase.from('leads').select('id, full_name, job_title, status').eq('id', l.data.referred_by_lead_id).maybeSingle()
@@ -224,6 +226,15 @@ export default function LeadDrawer({ leadId, onClose, onChanged, isAdmin }) {
                 </div>
               </div>
             ))}
+          </section>
+        )}
+
+        {assignments.length > 0 && (
+          <section className="facts">
+            <h3>A/B tests</h3>
+            <ul className="plain-list small">
+              {assignments.map((x, i) => <li key={i}><Link to={`/experiments/${x.experiments?.id}`}>{x.experiments?.name}</Link>: group <strong>{x.experiment_variants?.key}</strong>, {x.experiment_variants?.name} <span className="muted">({x.experiments?.status})</span></li>)}
+            </ul>
           </section>
         )}
 

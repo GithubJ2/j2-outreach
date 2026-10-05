@@ -1,0 +1,3 @@
+-- A/B testing: playbook, experiments, experiment_variants, lead_assignments, assign_lead(), start_experiment(),
+-- conclude_experiment(), experiment_results, experiment_daily, funnel_30d views, RLS and grants.
+-- Applied on 5 Oct 2026; see the Supabase migration history for the full SQL.

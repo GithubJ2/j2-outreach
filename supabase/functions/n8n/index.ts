@@ -8,6 +8,8 @@
 //   POST /n8n/status      body: {lead_id | email, status, reason, next_action_at}
 //   GET  /n8n/queue?status=ready&tier=gold&region=ZA&limit=50   -> leads to act on
 //   GET  /n8n/lead?email=...  or ?phone=...  or ?id=...          -> one lead with company
+//   GET  /n8n/experiments   -> running A/B experiments with their variants, plus the playbook
+//   GET  /n8n/playbook      -> current settings per factor (what to do when no experiment covers it)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -49,7 +51,33 @@ Deno.serve(async (req) => {
       if (q.due === "true") query = query.lte("next_action_at", new Date().toISOString());
       const { data, error } = await query;
       if (error) throw error;
-      return json({ count: data.length, leads: data });
+      // Attach each lead's experiment variants so n8n can route it (campaign, script, timing)
+      const ids = data.map((l) => l.id);
+      const { data: asg } = ids.length
+        ? await supabase.from("lead_assignments").select("lead_id, experiments!inner(id, name, factor, status), experiment_variants(id, key, name, config)").in("lead_id", ids).eq("experiments.status", "running")
+        : { data: [] };
+      const byLead: Record<string, Record<string, unknown>> = {};
+      for (const a of asg ?? []) {
+        const ex = a.experiments as { id: string; name: string; factor: string };
+        const v = a.experiment_variants as { id: string; key: string; name: string; config: unknown };
+        (byLead[a.lead_id] ??= {})[ex.factor] = { experiment_id: ex.id, experiment: ex.name, variant: v.key, variant_id: v.id, name: v.name, config: v.config };
+      }
+      const { data: pb } = await supabase.from("playbook").select("factor, config");
+      const playbook = Object.fromEntries((pb ?? []).map((r) => [r.factor, r.config]));
+      return json({ count: data.length, playbook, leads: data.map((l) => ({ ...l, experiments: byLead[l.id] ?? {} })) });
+    }
+
+    if (req.method === "GET" && route === "experiments") {
+      const { data, error } = await supabase.from("experiments").select("id, name, factor, channel, goal_metric, status, started_at, experiment_variants(id, key, name, config, is_control, weight)").eq("status", "running");
+      if (error) throw error;
+      const { data: pb } = await supabase.from("playbook").select("factor, config, updated_at");
+      return json({ playbook: pb ?? [], experiments: data });
+    }
+
+    if (req.method === "GET" && route === "playbook") {
+      const { data, error } = await supabase.from("playbook").select("*");
+      if (error) throw error;
+      return json(Object.fromEntries((data ?? []).map((r) => [r.factor, r.config])));
     }
 
     if (req.method === "GET" && route === "lead") {

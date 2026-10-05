@@ -12,6 +12,7 @@ import Meetings from './pages/Meetings'
 import Import from './pages/Import'
 import DoNotContact from './pages/DoNotContact'
 import Settings from './pages/Settings'
+import Experiments from './pages/Experiments'
 
 export default function App() {
   if (configMissing) {
@@ -42,6 +43,8 @@ function Gate() {
         <Route path="/leads/:id" element={<Leads />} />
         <Route path="/meetings" element={<Meetings />} />
         <Route path="/import" element={<Import />} />
+        <Route path="/experiments" element={<Experiments />} />
+        <Route path="/experiments/:id" element={<Experiments />} />
         <Route path="/dnc" element={<DoNotContact />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

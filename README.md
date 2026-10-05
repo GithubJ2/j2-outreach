@@ -73,10 +73,22 @@ All calls need the header `x-webhook-secret: <WEBHOOK_SECRET>`. Base: `https://r
 | `POST /n8n/companies` | Enrich a company by domain: `{"domain":"acme.co.za","exposure":{"open_ports":3,"vulns":1},"dmarc_status":"missing"}`. Leads are re-scored. |
 | `GET /n8n/queue?status=ready&tier=gold&region=ZA&limit=50` | Leads to work, highest score first. `due=true` limits to leads whose next action is due. |
 | `GET /n8n/lead?email=...` | One lead with its company. |
+| `GET /n8n/experiments` | Running A/B experiments with variants, plus the playbook. |
+| `GET /n8n/playbook` | Current setting per factor. Each lead in `/n8n/queue` also carries `experiments: {factor: {variant, config}}`: route it through the matching campaign or script, and fall back to the playbook. |
 | `POST /n8n/events` | Log anything: `{"email":"...","type":"email_sent","channel":"email","source":"instantly","external_id":"..."}` |
 | `POST /n8n/status` | `{"email":"...","status":"in_sequence","reason":"Added to campaign X","external_ids":{"instantly_lead_id":"..."}}` |
 | `POST /webhook-jobix` | Jobix callback_url. Pass `lead_id` in the call `context`. Handles outcomes, attempts, bookings, DNC. |
 | `POST /webhook-instantly` | Instantly webhook for sent/opened/replied/bounced/unsubscribed. Matches on lead email. |
+
+## A/B testing
+
+- **Playbook** (`playbook` table): what every lead gets right now, one row per factor (subject line, call opening, calling hours, offer, tone, ...).
+- **Experiment**: changes one factor. Variants A (control) and B. Leads are assigned when they become Ready, by a stable hash
+  (`assign_lead`), filtered by audience (tiers, regions). `start_experiment` assigns everyone already Ready; one running experiment per factor.
+- **Results** (`experiment_results`, `experiment_daily` views): counted from lead timelines after assignment. The app runs a two-proportion
+  z-test and a sample-size calculator (80% power, 95% confidence).
+- **Deciding**: `conclude_experiment(id, winner, conclusion, apply)` writes the winner's config into the playbook.
+- n8n: read `experiments` from each queued lead and route accordingly; otherwise use the playbook.
 
 ## Project structure
 

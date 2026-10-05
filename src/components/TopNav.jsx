@@ -32,6 +32,7 @@ export default function TopNav() {
         <NavLink to="/leads">Leads {attention > 0 && <span className="badge" title="Replies and bookings needing a person">{attention}</span>}</NavLink>
         <NavLink to="/meetings">Meetings</NavLink>
         <NavLink to="/import">Import</NavLink>
+        <NavLink to="/experiments">A/B testing</NavLink>
         <NavLink to="/dnc">Do not contact</NavLink>
         <NavLink to="/settings">Settings {isAdmin && pending > 0 && <span className="badge">{pending}</span>}</NavLink>
       </div>
