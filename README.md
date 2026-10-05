@@ -35,15 +35,27 @@ from `.env.local`.
 
 ## How a lead moves
 
-```
-new -> ready -> in_sequence (Instantly) -> calling (Jobix) -> replied / meeting_booked / not_now / not_interested / unreachable
-                                                     \-> dnc (opt-out, "do not call", or added by hand)
-```
+| Status | Means | Who acts next |
+| --- | --- | --- |
+| New | Imported, not reviewed | A person reviews, then marks Ready or archives |
+| Ready | Approved for outreach | n8n picks it up (`GET /n8n/queue?status=ready`) |
+| Emailing | In an Instantly sequence | System |
+| Calling | AI call in progress or due | System |
+| Pending | No answer; next attempt scheduled (`next_action_at`) | System, on the date |
+| Replied | Wrote back | A person answers today |
+| Interested | Wants info or a later call | A person follows up |
+| Meeting booked | Booked, waiting for SDR confirmation | SDR confirms |
+| Handed over | Meeting held; with sales in ConnectWise | Sales |
+| Not now | Asked for later; re-opens as Ready on the date (`reopen_due_leads()`) | System |
+| Deferred | Pointed us to someone else; linked to the referral | Nobody |
+| Referral | Created from a referral, linked to the referrer | A person, as a warm lead |
+| Wrong person | Not the right contact, no referral given | A person finds the right contact |
+| Not interested / Unreachable / Do not contact / Archived | Closed | Nobody |
 
-- **New**: imported, waiting for a person to review.
-- **Ready**: approved. n8n pulls these from `GET /n8n/queue?status=ready` and pushes them to Instantly / Jobix.
-- Everything after that is set by the webhooks, and can be overridden by hand in the app.
-- Call attempts are counted; after `max_call_attempts` (Settings) the lead becomes Unreachable.
+Referrals: `add_referral(from_lead_id, {full_name, job_title, email, phone, company?, note})` creates the new lead,
+links both ways and sets the referrer to Deferred. The Jobix webhook calls it when a call outcome includes a `referral` object.
+
+n8n should call `reopen_due_leads()` once a day (or `POST /n8n/status` per lead) so "Not now" leads come back on time.
 
 ## Scoring
 

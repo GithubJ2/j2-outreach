@@ -25,6 +25,8 @@ function classify(outcome: string | undefined, appointmentBooked: boolean) {
   const o = (outcome || "").toLowerCase();
   if (appointmentBooked || /appoint|booked|qualified|meeting/.test(o)) return "meeting_booked";
   if (/dnc|do_not_call|do not call|remove/.test(o)) return "dnc";
+  if (/refer/.test(o)) return "referral";
+  if (/interest|send_info|send info|more info|follow_up|follow up/.test(o) && !/not_interest|no_interest|not interested/.test(o)) return "interested";
   if (/not_interested|not interested|declined|no_interest/.test(o)) return "not_interested";
   if (/callback|call_back|call back|later|not_now|busy/.test(o)) return "not_now";
   if (/voicemail/.test(o)) return "voicemail";
@@ -130,17 +132,30 @@ Deno.serve(async (req) => {
       break;
     }
     case "wrong_person":
-      patch.status = "unreachable"; patch.status_reason = "Wrong person or number"; break;
+      patch.status = "wrong_person"; patch.status_reason = "Not the right person; find the right contact"; patch.next_action_at = null; break;
+    case "interested":
+      patch.status = "interested"; patch.status_reason = (body.next_action as string) || "Showed interest on the call; follow up"; patch.next_action_at = new Date().toISOString(); break;
+    case "referral": {
+      const ref = (body.referral as Record<string, unknown>) || {};
+      const refLead = { full_name: ref.name ?? ref.full_name, job_title: ref.title ?? ref.job_title, email: ref.email, phone: ref.phone, company: ref.company, same_company: !ref.company, note: body.summary ?? body.next_action };
+      if (refLead.full_name && (refLead.email || refLead.phone)) {
+        const { error } = await supabase.rpc("add_referral", { p_from: lead.id, p_lead: refLead });
+        if (!error) break; // add_referral sets the referrer to Deferred
+        patch.status = "deferred"; patch.status_reason = `Referral given but could not be saved: ${error.message}`; break;
+      }
+      patch.status = "wrong_person"; patch.status_reason = "Pointed us elsewhere but gave no usable details"; break;
+    }
     case "voicemail":
     case "no_answer":
       if (attempts >= maxAttempts) { patch.status = "unreachable"; patch.status_reason = `No answer after ${attempts} attempts`; patch.next_action_at = null; }
-      else { patch.status = "calling"; patch.next_action_at = new Date(Date.now() + 2 * 86400000).toISOString(); }
+      else { patch.status = "pending"; patch.status_reason = `No answer (attempt ${attempts} of ${maxAttempts}); next attempt scheduled`; patch.next_action_at = new Date(Date.now() + 2 * 86400000).toISOString(); }
       break;
     default:
       patch.status = lead.status === "meeting_booked" ? lead.status : "calling";
   }
 
-  if (kind !== "dnc") await supabase.from("leads").update(patch).eq("id", lead.id);
+  if (kind !== "dnc" && !(kind === "referral" && patch.status === undefined)) await supabase.from("leads").update(patch).eq("id", lead.id);
+  else if (kind === "referral") await supabase.from("leads").update({ call_attempts: attempts }).eq("id", lead.id);
   return json({ ok: true, lead_id: lead.id, kind, attempts });
 });
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { STATUSES, TIERS, EVENT_LABELS } from '../lib/constants'
+import { STATUSES, TIERS, EVENT_LABELS, NEEDS_PERSON } from '../lib/constants'
 import { fmtDateTime, timeAgo } from '../lib/utils'
 import { StatusPill } from '../components/Badges'
 
@@ -43,7 +43,7 @@ export default function Dashboard() {
   const replied7d = act('email_replied')
   const calls7d = act('call_attempted') + act('call_connected') + act('call_voicemail') + act('call_outcome') + act('call_transferred')
   const connected7d = act('call_connected') + act('call_outcome') + act('call_transferred')
-  const needsPerson = (byStatus.replied || 0) + (byStatus.meeting_booked || 0)
+  const needsPerson = NEEDS_PERSON.reduce((n, st) => n + (byStatus[st] || 0), 0)
 
   if (error) return <div className="page"><p className="form-error">{error}</p></div>
   if (!counts) return <div className="splash">Loading overview</div>
@@ -78,8 +78,9 @@ export default function Dashboard() {
           <h2>Needs a person</h2>
           {needsPerson === 0 ? <p className="muted">Nothing waiting. Replies and new bookings will appear here.</p> : (
             <ul className="plain-list">
-              {byStatus.replied > 0 && <li><Link to="/leads?status=replied"><StatusPill status="replied" /> {byStatus.replied} {byStatus.replied === 1 ? 'reply' : 'replies'} to answer</Link></li>}
-              {byStatus.meeting_booked > 0 && <li><Link to="/meetings"><StatusPill status="meeting_booked" /> {byStatus.meeting_booked} {byStatus.meeting_booked === 1 ? 'meeting' : 'meetings'} to confirm</Link></li>}
+              {NEEDS_PERSON.filter((st) => byStatus[st] > 0).map((st) => (
+                <li key={st}><Link to={st === 'meeting_booked' ? '/meetings' : `/leads?status=${st}`}><StatusPill status={st} /> {byStatus[st]}: {STATUSES[st].next.toLowerCase()}</Link></li>
+              ))}
             </ul>
           )}
           <h2 className="mt">Pipeline</h2>

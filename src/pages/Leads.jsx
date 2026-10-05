@@ -41,7 +41,7 @@ export default function Leads() {
     setLoading(true)
     let query = supabase
       .from('leads')
-      .select('id, full_name, job_title, email, phone, region, status, tier, score, next_action_at, updated_at, call_attempts, companies(name, industry, employee_band)', { count: 'exact' })
+      .select('id, full_name, job_title, email, phone, region, status, tier, score, next_action_at, updated_at, call_attempts, referred_by_lead_id, companies(name, industry, employee_band)', { count: 'exact' })
       .order('score', { ascending: false })
       .order('updated_at', { ascending: false })
       .range(page * PAGE, page * PAGE + PAGE - 1)
@@ -153,7 +153,7 @@ export default function Leads() {
                     <div className="cell-sub">{[l.companies?.industry, l.companies?.employee_band, REGIONS[l.region]].filter(Boolean).join(', ')}</div>
                   </td>
                   <td><TierBadge tier={l.tier} score={l.score} /></td>
-                  <td><StatusPill status={l.status} /></td>
+                  <td>{l.status === 'referral' && l.referred_by_lead_id ? <StatusPill status="referral" to={`/leads/${l.referred_by_lead_id}`} title="Open the lead who referred them" /> : <StatusPill status={l.status} />}</td>
                   <td className="cell-sub">{l.next_action_at ? (new Date(l.next_action_at) < new Date() ? 'Due now' : timeAgo(l.next_action_at).replace(' ago', '')) : ''}</td>
                   <td className="cell-sub">{timeAgo(l.updated_at)}</td>
                 </tr>

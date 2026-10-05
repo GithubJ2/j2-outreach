@@ -25,7 +25,9 @@ const LESSONS = [
       { pill: 'ready', detail: 'Approved. The system can start contacting them.' },
       { pill: 'in_sequence', detail: 'Emails are going out.' },
       { pill: 'calling', detail: 'The AI is calling them.' },
+      { pill: 'pending', detail: 'No answer yet. The next attempt is already scheduled.' },
       { pill: 'replied', detail: 'They wrote back. A person must answer.' },
+      { pill: 'referral', detail: 'Someone pointed us to this person. A warm lead, linked to who referred them.' },
       { pill: 'meeting_booked', detail: 'A meeting is booked. An SDR confirms it.' },
     ] },
     done: 'Grey and dashed means waiting. Solid green means a result.',
@@ -39,7 +41,7 @@ const LESSONS = [
       { pill: 'replied', ok: true, say: 'Yes. Someone wrote back and is waiting for a human.' },
       { pill: 'calling', ok: false, say: 'Not quite. The AI is handling this one.' },
     ] },
-    done: 'Replied and Meeting booked are the two that need you. The number on the Leads tab counts them.',
+    done: 'Replied, Interested, Referral, Wrong person and Meeting booked all need a person. The number on the Leads tab counts them.',
   },
   {
     key: 'tiers',

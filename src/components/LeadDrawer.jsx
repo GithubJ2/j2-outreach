@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../lib/toast'
 import { useAuth } from '../lib/auth'
@@ -10,25 +11,33 @@ import Modal from './Modal'
 
 export default function LeadDrawer({ leadId, onClose, onChanged, isAdmin }) {
   const toast = useToast()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [lead, setLead] = useState(null)
   const [events, setEvents] = useState([])
   const [meetings, setMeetings] = useState([])
+  const [referrer, setReferrer] = useState(null)
+  const [referrals, setReferrals] = useState([])
   const [people, setPeople] = useState({})
   const [note, setNote] = useState('')
   const [modal, setModal] = useState(null) // 'status' | 'call' | 'meeting' | 'dnc'
   const [form, setForm] = useState({})
 
   const load = useCallback(async () => {
-    const [l, e, m, p] = await Promise.all([
+    const [l, e, m, p, r] = await Promise.all([
       supabase.from('leads').select('*, companies(*)').eq('id', leadId).maybeSingle(),
       supabase.from('lead_events').select('*').eq('lead_id', leadId).order('occurred_at', { ascending: false }).limit(100),
       supabase.from('meetings').select('*').eq('lead_id', leadId).order('scheduled_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email'),
+      supabase.from('lead_referrals').select('*').eq('from_lead_id', leadId),
     ])
     if (l.error) return toast.error(l.error.message)
-    setLead(l.data); setEvents(e.data ?? []); setMeetings(m.data ?? [])
+    setLead(l.data); setEvents(e.data ?? []); setMeetings(m.data ?? []); setReferrals(r.data ?? [])
     setPeople(Object.fromEntries((p.data ?? []).map((x) => [x.id, x])))
+    if (l.data?.referred_by_lead_id) {
+      const { data: ref } = await supabase.from('leads').select('id, full_name, job_title, status').eq('id', l.data.referred_by_lead_id).maybeSingle()
+      setReferrer(ref)
+    } else setReferrer(null)
   }, [leadId, toast])
 
   useEffect(() => { load() }, [load])
@@ -91,6 +100,17 @@ export default function LeadDrawer({ leadId, onClose, onChanged, isAdmin }) {
     setModal(null)
   }
 
+  const addReferral = async () => {
+    const { data, error } = await supabase.rpc('add_referral', {
+      p_from: leadId,
+      p_lead: { full_name: form.name, job_title: form.title, email: form.email, phone: form.phone, company: form.company, same_company: !form.company, note: form.note },
+    })
+    if (error) return toast.error(error.message)
+    toast.success(`${form.name} added as a referral`)
+    setModal(null); onChanged?.()
+    navigate(`/leads/${data}`)
+  }
+
   const addDnc = async () => {
     const { error } = await supabase.from('do_not_contact').insert({ email: lead.email, phone: lead.email ? null : lead.phone, reason: form.reason || 'Asked us to stop', source: 'manual', added_by: user.id })
     if (error) return toast.error(error.message)
@@ -116,20 +136,26 @@ export default function LeadDrawer({ leadId, onClose, onChanged, isAdmin }) {
     <aside className="drawer drawer-wide" aria-label={`Lead: ${lead.full_name}`}>
       <div className="drawer-head">
         <div className="drawer-nav">
-          <StatusPill status={lead.status} />
+          {lead.status === 'referral' && referrer ? <StatusPill status="referral" to={`/leads/${referrer.id}`} title={`Referred by ${referrer.full_name}. Open their lead`} />
+            : lead.status === 'deferred' && referrals[0] ? <StatusPill status="deferred" to={`/leads/${referrals[0].to_lead_id}`} title={`Referred us to ${referrals[0].full_name}. Open their lead`} />
+            : <StatusPill status={lead.status} />}
           <TierBadge tier={lead.tier} score={lead.score} />
           <span className="drawer-pos">{REGIONS[lead.region] ?? ''}</span>
           <button className="icon-btn" onClick={onClose} aria-label="Close">×</button>
         </div>
         <InlineInput className="drawer-title" value={lead.full_name} onSave={(v) => v.trim() && saveLead({ full_name: v.trim() })} aria-label="Name" />
         <InlineInput className="drawer-sub" value={lead.job_title ?? ''} placeholder="Job title" onSave={(v) => saveLead({ job_title: v.trim() || null })} aria-label="Job title" />
-        {lead.status_reason && <p className="muted small">{lead.status_reason}{lead.next_action_at ? `. Next: ${fmtDateTime(lead.next_action_at)}` : ''}</p>}
+        <p className="next-action"><strong>Next:</strong> {STATUSES[lead.status]?.next}{lead.next_action_at ? ` (${fmtDateTime(lead.next_action_at)})` : ''}</p>
+        {lead.status_reason && <p className="muted small">{lead.status_reason}</p>}
+        {referrer && <p className="small">Referred by <Link to={`/leads/${referrer.id}`}>{referrer.full_name}</Link>{referrer.job_title ? `, ${referrer.job_title}` : ''}</p>}
+        {referrals.length > 0 && <p className="small">Referred us to {referrals.map((r, i) => <span key={r.to_lead_id}>{i > 0 ? ', ' : ''}<Link to={`/leads/${r.to_lead_id}`}>{r.full_name}</Link></span>)}</p>}
         <div className="row-actions wrap">
           {lead.status !== 'dnc' && <>
             {lead.status === 'new' && <button className="btn btn-primary btn-sm" onClick={() => saveLead({ status: 'ready', status_reason: 'Approved for outreach' })}>Mark ready</button>}
             <button className="btn btn-ghost btn-sm" onClick={() => open('status', { status: lead.status, reason: '' })}>Set status</button>
             <button className="btn btn-ghost btn-sm" onClick={() => open('call', { outcome: 'no_answer' })}>Log a call</button>
             <button className="btn btn-ghost btn-sm" onClick={() => open('meeting', { tz: lead.region === 'GB' ? 'Europe/London' : 'Africa/Johannesburg' })}>Book meeting</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => open('referral', {})}>Add referral</button>
             <button className="btn btn-danger-ghost btn-sm" onClick={() => open('dnc', {})}>Do not contact</button>
           </>}
           {lead.status === 'dnc' && <span className="muted small">On the do-not-contact list. {isAdmin ? 'Remove them on the Do not contact page to re-open.' : ''}</span>}
@@ -258,6 +284,21 @@ export default function LeadDrawer({ leadId, onClose, onChanged, isAdmin }) {
           </div>
         </Modal>
       )}
+      {modal === 'referral' && (
+        <Modal title={`${lead.full_name} referred us to someone`} onClose={() => setModal(null)} footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" disabled={!form.name || (!form.email && !form.phone)} onClick={addReferral}>Add referral</button></>}>
+          <div className="stack">
+            <p className="muted small">A new lead is created with status Referral, linked back to {lead.full_name}, who becomes Deferred. Same company unless you type a different one.</p>
+            <label>Name<input className="input" autoFocus value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+            <label>Job title<input className="input" value={form.title ?? ''} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
+            <div className="row-2">
+              <label>Email<input className="input" type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+              <label>Phone<input className="input" value={form.phone ?? ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+            </div>
+            <label>Company, only if different<input className="input" value={form.company ?? ''} onChange={(e) => setForm({ ...form, company: e.target.value })} placeholder={c?.name ?? ''} /></label>
+            <label>What they said<textarea className="input" rows={2} value={form.note ?? ''} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="e.g. Sarah owns security decisions" /></label>
+          </div>
+        </Modal>
+      )}
       {modal === 'dnc' && (
         <Modal title="Add to do-not-contact" onClose={() => setModal(null)} footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" onClick={addDnc}>Add</button></>}>
           <div className="stack">
@@ -283,5 +324,7 @@ function renderPayload(e) {
     </p>
   )
   if (e.type === 'dnc_added') return <p className="tl-text muted">{p.reason}</p>
+  if (e.type === 'referral_made') return <p className="tl-text">To <Link to={`/leads/${p.to_lead_id}`}>{p.to_name}</Link>{p.note ? `. ${p.note}` : ''}</p>
+  if (e.type === 'referral_received') return <p className="tl-text">From <Link to={`/leads/${p.from_lead_id}`}>{p.from_name}</Link>{p.note ? `. ${p.note}` : ''}</p>
   return null
 }
