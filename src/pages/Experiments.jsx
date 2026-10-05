@@ -20,7 +20,7 @@ export default function Experiments() {
 
   const load = useCallback(async () => {
     const [e, p, r, f] = await Promise.all([
-      supabase.from('experiments').select('*, experiment_variants(*)').order('created_at', { ascending: false }),
+      supabase.from('experiments').select('*, experiment_variants!experiment_variants_experiment_id_fkey(*)').order('created_at', { ascending: false }),
       supabase.from('playbook').select('*'),
       supabase.from('experiment_results').select('*'),
       supabase.from('funnel_30d').select('*').maybeSingle(),
