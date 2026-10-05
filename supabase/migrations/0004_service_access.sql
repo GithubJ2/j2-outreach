@@ -1,0 +1,1 @@
+-- (merged into 0002: is_service(), can_write() and RPCs that accept the service role)
