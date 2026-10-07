@@ -12,6 +12,8 @@ export default function Dashboard() {
   const [recent, setRecent] = useState([])
   const [error, setError] = useState('')
   const [alerts, setAlerts] = useState([])
+  const [gate, setGate] = useState(null)
+  useEffect(() => { supabase.rpc('outreach_gate').then(({ data }) => setGate(data)) }, [])
   const loadAlerts = () => supabase.from('alerts').select('id, created_at, severity, title, source').is('acknowledged_at', null).order('created_at', { ascending: false }).limit(10).then(({ data }) => setAlerts(data ?? []))
   useEffect(() => { loadAlerts() }, [])
   const ackAlert = async (id) => {
@@ -65,6 +67,8 @@ export default function Dashboard() {
           <Link to="/leads?status=ready" className="btn btn-primary">Work the queue</Link>
         </div>
       </div>
+
+      {gate?.paused && <div className="paused-banner">Outreach is <strong>PAUSED</strong>. Nothing is being sent or dialled. Resume it in <Link to="/settings">Settings</Link>.</div>}
 
       {alerts.length > 0 && (
         <section className="panel alerts-panel" aria-label="System alerts">
