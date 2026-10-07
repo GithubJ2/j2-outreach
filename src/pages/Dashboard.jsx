@@ -11,6 +11,14 @@ export default function Dashboard() {
   const [meetings, setMeetings] = useState([])
   const [recent, setRecent] = useState([])
   const [error, setError] = useState('')
+  const [alerts, setAlerts] = useState([])
+  const loadAlerts = () => supabase.from('alerts').select('id, created_at, severity, title, source').is('acknowledged_at', null).order('created_at', { ascending: false }).limit(10).then(({ data }) => setAlerts(data ?? []))
+  useEffect(() => { loadAlerts() }, [])
+  const ackAlert = async (id) => {
+    const { data: u } = await supabase.auth.getUser()
+    await supabase.from('alerts').update({ acknowledged_at: new Date().toISOString(), acknowledged_by: u?.user?.id ?? null }).eq('id', id)
+    loadAlerts()
+  }
 
   useEffect(() => {
     ;(async () => {
@@ -57,6 +65,22 @@ export default function Dashboard() {
           <Link to="/leads?status=ready" className="btn btn-primary">Work the queue</Link>
         </div>
       </div>
+
+      {alerts.length > 0 && (
+        <section className="panel alerts-panel" aria-label="System alerts">
+          <h2>System alerts</h2>
+          <ul className="plain-list">
+            {alerts.map((a) => (
+              <li key={a.id} className={`alert-row alert-${a.severity}`}>
+                <span className={`alert-dot dot-${a.severity}`} aria-hidden="true" />
+                <span className="alert-title">{a.title}</span>
+                <span className="muted small">{a.source}, {timeAgo(a.created_at)}</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => ackAlert(a.id)}>Mark seen</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {total === 0 && (
         <div className="empty">
