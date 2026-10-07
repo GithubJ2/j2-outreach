@@ -2,11 +2,11 @@ export const STATUSES = {
   new: { label: 'New', hint: 'Imported, not yet reviewed', next: 'Review it, then mark Ready or archive it', who: 'you' },
   ready: { label: 'Ready', hint: 'Approved for outreach', next: 'Nothing. n8n picks these up for email and calls', who: 'system' },
   in_sequence: { label: 'Emailing', hint: 'In an email sequence', next: 'Nothing. Watch for a reply', who: 'system' },
-  calling: { label: 'Calling', hint: 'AI call in progress or due now', next: 'Nothing. Wait for the outcome', who: 'system' },
-  pending: { label: 'Pending', hint: 'No answer yet; next attempt is scheduled', next: 'Nothing. The next attempt happens on the date shown', who: 'system' },
+  calling: { label: 'Calling', hint: 'A call is due: by the sales team for top leads, or by Zoe on warm leads', next: 'Sales team: if the reason says personal contact, call them', who: 'you' },
+  pending: { label: 'Pending', hint: 'Waiting on a scheduled attempt, or held back for review (see Reason)', next: 'Read the reason. If held back, fix the data and mark Ready', who: 'you' },
   replied: { label: 'Replied', hint: 'Wrote back to an email', next: 'Read the reply and answer it today', who: 'you' },
   interested: { label: 'Interested', hint: 'Showed interest, wants info or a later call', next: 'Follow up personally', who: 'you' },
-  meeting_booked: { label: 'Meeting booked', hint: 'Meeting booked, waiting for SDR confirmation', next: 'An SDR confirms the time with them', who: 'sdr' },
+  meeting_booked: { label: 'Meeting booked', hint: 'Meeting booked, waiting for SDR confirmation', next: 'The sales team confirms the time with them', who: 'sdr' },
   handed_over: { label: 'Handed over', hint: 'Meeting held; now with sales in ConnectWise', next: 'Nothing here. Sales owns it', who: 'sales' },
   not_now: { label: 'Not now', hint: 'Asked to be contacted later', next: 'Nothing. Re-opens as Ready on the date shown', who: 'system' },
   deferred: { label: 'Deferred', hint: 'Pointed us to someone else', next: 'Nothing. Work the referral instead', who: 'nobody' },
@@ -22,7 +22,7 @@ export const STATUSES = {
 export const MANUAL_STATUSES = ['new', 'ready', 'replied', 'interested', 'meeting_booked', 'handed_over', 'not_now', 'wrong_person', 'not_interested', 'unreachable', 'archived']
 
 // Statuses that need a person
-export const NEEDS_PERSON = ['replied', 'interested', 'meeting_booked', 'referral', 'wrong_person']
+export const NEEDS_PERSON = ['replied', 'interested', 'meeting_booked', 'calling', 'referral', 'wrong_person']
 
 export const TIERS = {
   green: { label: 'Green', hint: 'Best leads: personal outreach by the top SDRs' },
