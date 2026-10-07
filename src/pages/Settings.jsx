@@ -12,6 +12,22 @@ export default function Settings() {
   const [draft, setDraft] = useState({})
   const [people, setPeople] = useState([])
   const [busy, setBusy] = useState(false)
+  const [gate, setGate] = useState(null)
+  const loadGate = useCallback(() => supabase.rpc('outreach_gate').then(({ data }) => setGate(data)), [])
+  useEffect(() => { loadGate() }, [loadGate])
+  const togglePause = async () => {
+    const pausing = !gate?.paused
+    const reason = pausing ? prompt('Why are you pausing outreach? (shown to the team)') : null
+    if (pausing && reason === null) return
+    const { data, error } = await supabase.rpc('set_outreach_paused', { p_paused: pausing, p_reason: reason })
+    if (error) return toast.error(error.message)
+    setGate(data); toast.success(pausing ? 'Outreach paused. Nothing new will be sent or dialled.' : 'Outreach resumed')
+  }
+  const saveCap = async (n) => {
+    const { error } = await supabase.from('settings').upsert({ key: 'daily_send_cap', value: Number(n) }, { onConflict: 'key' })
+    if (error) return toast.error(error.message)
+    loadGate(); toast.success(`Daily cap set to ${n}`)
+  }
 
   const load = useCallback(async () => {
     const [s, p] = await Promise.all([
@@ -70,6 +86,26 @@ export default function Settings() {
   return (
     <div className="page">
       <h1>Settings</h1>
+
+      {gate && (
+        <section className={`panel gate-panel ${gate.paused ? 'is-paused' : ''}`}>
+          <h2>Outreach control</h2>
+          <div className="gate-row">
+            <div>
+              <strong>{gate.paused ? 'PAUSED: nothing is being sent or dialled' : 'Running'}</strong>
+              <div className="muted small">Today: {gate.sent_today} of {gate.daily_cap} new prospects started. {gate.remaining_today} left. n8n and Jobix check this before every send and call.</div>
+            </div>
+            {isAdmin && <button className={`btn ${gate.paused ? 'btn-primary' : 'btn-danger-ghost'}`} onClick={togglePause}>{gate.paused ? 'Resume outreach' : 'Pause everything'}</button>}
+          </div>
+          {isAdmin && (
+            <label className="gate-cap">Daily cap on new prospects
+              <select className="input input-compact" value={gate.daily_cap} onChange={(e) => saveCap(e.target.value)}>
+                {[10, 25, 50, 75, 100, 150].map((n) => <option key={n} value={n}>{n} a day</option>)}
+              </select>
+            </label>
+          )}
+        </section>
+      )}
 
       <section className="panel">
         <h2>Targeting and scoring</h2>
