@@ -25,7 +25,7 @@ export default function TopNav() {
     <nav className="topnav">
       <div className="brand">
         <BasketballLogo onScore={() => setLearn(true)} />
-        <NavLink to="/" className="brand-name" end>J2 Outreach</NavLink>
+        <NavLink to="/" className="brand-name" end>A-Eyes</NavLink>
       </div>
       <div className="topnav-links">
         <NavLink to="/" end>Overview</NavLink>
