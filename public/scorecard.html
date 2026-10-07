@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Your security scorecard — J2</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<style>
+  :root{--ink:#1c2434;--ink2:#3d4759;--fog:#8e97a6;--paper:#f3f3ef;--panel:#fff;--line:#dcdfe3;--green:#1f7a4d;--amber:#b98619;--red:#a7303f;--blue:#2f5bd6;--r:12px;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:var(--ink);line-height:1.5}
+  *{box-sizing:border-box}body{margin:0;background:var(--paper)}
+  .wrap{max-width:680px;margin:0 auto;padding:2rem 1.25rem 4rem}
+  .top{display:flex;align-items:center;gap:.6rem;margin-bottom:1.5rem}
+  .top img{border-radius:8px}.top b{font-size:1.1rem}
+  h1{font-size:1.6rem;margin:.2rem 0}.lead{color:var(--ink2);font-size:1.05rem}
+  .grade-card{display:flex;gap:1.25rem;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:1.25rem;margin:1.25rem 0}
+  .grade{font-family:'IBM Plex Serif',Georgia,serif;font-size:3.5rem;font-weight:600;width:5rem;height:5rem;display:grid;place-items:center;border-radius:var(--r);flex-shrink:0}
+  .g-A,.g-B{background:#e4f1e9;color:var(--green)}.g-C{background:#f8efdc;color:var(--amber)}.g-D,.g-F{background:#f9e7ea;color:var(--red)}
+  .grade-note{font-size:.95rem;color:var(--ink2)}
+  .finding{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--fog);border-radius:var(--r);padding:.9rem 1.1rem;margin-bottom:.6rem}
+  .finding.critical{border-left-color:var(--red)}.finding.high{border-left-color:var(--red)}.finding.medium{border-left-color:var(--amber)}.finding.low{border-left-color:var(--fog)}.finding.good{border-left-color:var(--green)}
+  .finding h3{margin:0 0 .25rem;font-size:1.02rem}.finding p{margin:0;color:var(--ink2);font-size:.92rem}
+  .sev{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:.1rem .45rem;border-radius:5px;margin-left:.4rem;vertical-align:1px}
+  .sev.critical,.sev.high{background:#f9e7ea;color:var(--red)}.sev.medium{background:#f8efdc;color:var(--amber)}.sev.low{background:var(--paper);color:var(--fog)}.sev.good{background:#e4f1e9;color:var(--green)}
+  h2{font-size:1.25rem;margin:2rem 0 .5rem}
+  .q{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:.6rem}
+  .q p{margin:0 0 .6rem;font-weight:500}
+  .opts{display:flex;flex-wrap:wrap;gap:.4rem}
+  .opt{font:inherit;font-size:.9rem;padding:.45rem .8rem;border:1.5px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+  .opt:hover{border-color:var(--ink)}.opt.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  textarea{width:100%;font:inherit;padding:.6rem;border:1px solid var(--line);border-radius:8px;min-height:3.5rem;resize:vertical}
+  .btn{font:inherit;font-weight:500;background:var(--ink);color:#fff;border:0;border-radius:8px;padding:.75rem 1.5rem;cursor:pointer;font-size:1rem}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .muted{color:var(--fog);font-size:.85rem}
+  .done{background:#e4f1e9;border:1px solid var(--green);border-radius:var(--r);padding:1.5rem;text-align:center;color:var(--green)}
+  .state{text-align:center;color:var(--fog);padding:4rem 1rem}
+  @media(prefers-color-scheme:dark){:root{--ink:#e6eaf0;--ink2:#c3cad6;--fog:#8b94a5;--paper:#151922;--panel:#1d2230;--line:#2b3242}.opt{background:#1d2230}.btn{background:#e6eaf0;color:#151922}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="state">Loading your scorecard…</div></div>
+<script>
+const API = "https://rxfzecmdsvrejebvxtfe.supabase.co/functions/v1/scorecard";
+const token = new URLSearchParams(location.search).get("t") || "";
+const app = document.getElementById("app");
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let answers = {}, questions = [];
+
+async function load(){
+  if(!token){ app.innerHTML = state("This link is not valid."); return; }
+  try{
+    const r = await fetch(`${API}?t=${encodeURIComponent(token)}`);
+    if(r.status === 410){ app.innerHTML = state("This report link has expired. Reply to the email you received and we will send you a fresh one."); return; }
+    if(r.status === 429){ app.innerHTML = state("This link has been opened too many times in a short period. Please try again in an hour."); return; }
+    if(!r.ok) throw 0;
+    render(await r.json());
+  }catch{ app.innerHTML = state("This scorecard could not be found. The link may have expired."); }
+}
+function state(msg){ return `<div class="state">${esc(msg)}</div>`; }
+
+function render(d){
+  questions = d.questions || [];
+  const sc = d.scorecard;
+  const hi = "J2 Cybersecurity";
+  let html = `<div class="top"><img src="/favicon.svg" width="28" height="28" alt=""><b>${hi}</b></div>`;
+  html += `<h1>Hi${d.first_name?` ${esc(d.first_name)}`:""}, here is what we can see about ${d.company?esc(d.company):"your company"} from the outside.</h1>`;
+  html += `<p class="lead">This is drawn only from publicly visible information, the same places an attacker looks first. No systems were accessed or tested.</p>`;
+
+  if(sc && sc.has_data){
+    html += `<div class="grade-card"><div class="grade g-${sc.grade}">${sc.grade}</div><div><div style="font-weight:600;font-size:1.1rem">Exposure grade ${sc.grade}</div><div class="grade-note">${gradeNote(sc.grade)}</div></div></div>`;
+    for(const it of sc.items){
+      html += `<div class="finding ${it.severity}"><h3>${esc(it.title)}<span class="sev ${it.severity}">${it.severity==="good"?"ok":it.severity}</span></h3><p>${esc(it.why)}</p></div>`;
+    }
+  } else {
+    html += `<div class="grade-card"><div class="grade g-C">?</div><div class="grade-note">We are still gathering your external exposure data. Answer a few quick questions below and we will walk you through the full picture.</div></div>`;
+  }
+
+  if(d.answered){
+    html += `<div class="done" style="margin-top:2rem"><strong>Thanks, we have your answers.</strong><br>One of our specialists will be in touch shortly.</div>`;
+  } else if(questions.length){
+    html += `<h2>A few quick questions</h2><p class="muted">So we tailor the conversation to you. Takes about 30 seconds.</p><div id="qs">`;
+    for(const q of questions){
+      html += `<div class="q"><p>${esc(q.q)}</p><div class="opts" data-k="${esc(q.key)}">${q.options.map(o=>`<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`;
+    }
+    html += `<div class="q"><p>Anything else you would like us to look at?</p><textarea id="comment" placeholder="Optional"></textarea></div>`;
+    html += `</div><p style="margin-top:1rem"><button class="btn" id="send" disabled>Send my answers</button></p>`;
+    html += `<p class="muted">By sending, you agree we may contact you about your results. Not interested? Just ignore this page.</p>`;
+  }
+  app.innerHTML = html;
+
+  app.querySelectorAll(".opts").forEach(grp=>{
+    grp.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+      grp.querySelectorAll(".opt").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); answers[grp.dataset.k]=b.dataset.v;
+      const send=document.getElementById("send"); if(send) send.disabled=Object.keys(answers).length===0;
+    });
+  });
+  const send=document.getElementById("send");
+  if(send) send.onclick=submit;
+}
+function gradeNote(g){return {A:"Strong. Little is exposed to the outside.",B:"Good, with a few things worth tightening.",C:"Some real gaps an attacker could use.",D:"Several serious exposures. Worth acting on soon.",F:"Significant exposure. We would treat this as urgent."}[g]||"";}
+
+async function submit(){
+  const btn=document.getElementById("send"); btn.disabled=true; btn.textContent="Sending…";
+  try{
+    const r=await fetch(`${API}?t=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers,comment:(document.getElementById("comment")||{}).value||""})});
+    if(!r.ok) throw 0;
+    document.getElementById("qs").innerHTML="";
+    btn.closest("p").outerHTML=`<div class="done"><strong>Thanks, that is on its way to our team.</strong><br>We will be in touch shortly to walk you through it.</div>`;
+  }catch{ btn.disabled=false; btn.textContent="Send my answers"; alert("Something went wrong. Please try again."); }
+}
+load();
+</script>
+</body>
+</html>
