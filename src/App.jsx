@@ -30,7 +30,7 @@ export default function App() {
 
 function Gate() {
   const { session, profile, loading, recovery } = useAuth()
-  if (loading) return <div className="splash">Loading J2 Outreach</div>
+  if (loading) return <div className="splash">Loading A-Eyes</div>
   if (recovery) return <ResetPassword />
   if (!session) return <Login />
   if (!profile?.approved) return <Pending />
