@@ -45,7 +45,7 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-brand">
         <img src="/favicon.svg" alt="" width="56" height="56" />
-        <h1>J2 Outreach</h1>
+        <h1>A-Eyes</h1>
         <p>Leads in, qualified meetings out.</p>
       </div>
       <div className="auth-card">
