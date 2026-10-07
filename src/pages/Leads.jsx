@@ -41,7 +41,7 @@ export default function Leads() {
     setLoading(true)
     let query = supabase
       .from('leads')
-      .select('id, full_name, job_title, email, phone, region, status, tier, score, next_action_at, updated_at, call_attempts, referred_by_lead_id, companies(name, industry, employee_band)', { count: 'exact' })
+      .select('id, full_name, job_title, email, phone, region, status, status_reason, tier, score, next_action_at, updated_at, call_attempts, referred_by_lead_id, companies(name, industry, employee_band)', { count: 'exact' })
       .order('score', { ascending: false })
       .order('updated_at', { ascending: false })
       .range(page * PAGE, page * PAGE + PAGE - 1)
@@ -94,7 +94,10 @@ export default function Leads() {
             <h1>{title}</h1>
             <p className="muted small">{loading ? 'Loading' : `${total} ${total === 1 ? 'lead' : 'leads'}`}{status && STATUSES[status] ? `. ${STATUSES[status].hint}.` : ''}</p>
           </div>
-          <button className="btn btn-primary" onClick={() => navigate('/import')}>Import leads</button>
+          <div className="row-actions">
+            <button className={`btn ${status === 'pending' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setFilter('status', status === 'pending' ? '' : 'pending')}>Pending review</button>
+            <button className="btn btn-primary" onClick={() => navigate('/import')}>Import leads</button>
+          </div>
         </div>
 
         <div className="filters">
@@ -134,6 +137,7 @@ export default function Leads() {
                 <th>Company</th>
                 <th>Score</th>
                 <th>Status</th>
+                <th>Reason</th>
                 <th>Next</th>
                 <th>Updated</th>
               </tr>
@@ -154,12 +158,13 @@ export default function Leads() {
                   </td>
                   <td><TierBadge tier={l.tier} score={l.score} /></td>
                   <td>{l.status === 'referral' && l.referred_by_lead_id ? <StatusPill status="referral" to={`/leads/${l.referred_by_lead_id}`} title="Open the lead who referred them" /> : <StatusPill status={l.status} />}</td>
+                  <td className="cell-sub cell-reason" title={l.status_reason || ''}>{l.status_reason || ''}</td>
                   <td className="cell-sub">{l.next_action_at ? (new Date(l.next_action_at) < new Date() ? 'Due now' : timeAgo(l.next_action_at).replace(' ago', '')) : ''}</td>
                   <td className="cell-sub">{timeAgo(l.updated_at)}</td>
                 </tr>
               ))}
               {!loading && leads.length === 0 && (
-                <tr><td colSpan={7} className="empty-cell">No leads match these filters.</td></tr>
+                <tr><td colSpan={8} className="empty-cell">No leads match these filters.</td></tr>
               )}
             </tbody>
           </table>
