@@ -101,7 +101,7 @@ export default function Settings() {
 
       <section className="panel">
         <h2>Connections</h2>
-        <p className="muted small">These are the addresses other systems use to talk to J2 Outreach. Each one needs the shared secret, set once in Supabase under Edge Functions, Secrets, as <code>WEBHOOK_SECRET</code>. Send it as the header <code>x-webhook-secret</code>, or add <code>?secret=...</code> to the address.</p>
+        <p className="muted small">These are the addresses other systems use to talk to A-Eyes. Each one needs the shared secret, set once in Supabase under Edge Functions, Secrets, as <code>WEBHOOK_SECRET</code>. Send it as the header <code>x-webhook-secret</code>. Never put it in the address.</p>
         <dl className="endpoints">
           <dt>n8n: push leads in</dt><dd><code>POST {PROJECT_URL}/functions/v1/n8n/leads</code><span className="muted small">Body: one lead or a list. Same fields as the CSV import.</span></dd>
           <dt>n8n: add Shodan or DNS findings</dt><dd><code>POST {PROJECT_URL}/functions/v1/n8n/companies</code><span className="muted small">Body: {'{'}"domain", "exposure": {'{'}"open_ports": 3, "vulns": 1{'}'}, "dmarc_status": "missing"{'}'}</span></dd>
