@@ -100,7 +100,7 @@ export default function LearnHub({ onClose }) {
 
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal learn" role="dialog" aria-modal="true" aria-label="Learn how J2 Outreach works">
+      <div className="modal learn" role="dialog" aria-modal="true" aria-label="Learn how A-Eyes works">
         <div className="modal-head">
           <div className="learn-progress" aria-label={`Step ${Math.min(i + 1, LESSONS.length)} of ${LESSONS.length}`}>
             {LESSONS.map((l, n) => <span key={l.key} className={`learn-dot${n < i || finished ? ' is-done' : n === i && !finished ? ' is-now' : ''}`} />)}
