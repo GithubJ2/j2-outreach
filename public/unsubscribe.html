@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Unsubscribe | J2</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1a1d21;--muted:#5b6470;--line:#e3e6ea;--red:#d4232a;--ok:#1f7a3f}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1b1e22;--text:#eceef1;--muted:#9aa3ad;--line:#2b3036;--red:#ef4b51;--ok:#4cc27a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;max-width:440px;width:100%;padding:28px}
+h1{font-size:1.3rem;margin:0 0 8px}
+p{margin:0 0 16px;color:var(--muted)}
+button{background:var(--red);color:#fff;border:0;border-radius:8px;padding:12px 18px;font-size:1rem;cursor:pointer;width:100%}
+button:disabled{opacity:.6;cursor:default}
+.ok{color:var(--ok)}
+.hide{display:none}
+small{color:var(--muted)}
+</style>
+</head>
+<body>
+<main class="card">
+  <section id="ask">
+    <h1>Stop emails and calls from J2</h1>
+    <p>Click below and we will not email or call you again.</p>
+    <button id="go">Unsubscribe</button>
+  </section>
+  <section id="done" class="hide">
+    <h1 class="ok">You are unsubscribed</h1>
+    <p>We will not email or call you again. Sorry for the bother.</p>
+  </section>
+  <section id="fail" class="hide">
+    <h1>That did not work</h1>
+    <p>Just reply to our email with the word <strong>unsubscribe</strong> and we will remove you.</p>
+  </section>
+  <small>J2 Software UK</small>
+</main>
+<script>
+(function(){
+  var t = new URLSearchParams(location.search).get('t') || '';
+  var ok = /^[0-9a-f-]{36}$/i.test(t);
+  var show = function(id){ ['ask','done','fail'].forEach(function(s){ document.getElementById(s).classList.toggle('hide', s !== id) }) };
+  if (!ok) { show('fail'); return; }
+  var btn = document.getElementById('go');
+  btn.onclick = function(){
+    btn.disabled = true; btn.textContent = 'Working...';
+    fetch('https://rxfzecmdsvrejebvxtfe.supabase.co/functions/v1/scorecard?t=' + encodeURIComponent(t), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unsubscribe: true })
+    }).then(function(r){ show(r.ok ? 'done' : 'fail') }).catch(function(){ show('fail') });
+  };
+})();
+</script>
+</body>
+</html>
