@@ -17,5 +17,12 @@
     '<p>Our security specialists can walk you through what this means for your business in 20 minutes. No obligation.</p>' +
     '<div class="row"><a class="p" href="' + base + 'book">Book a time</a><a class="s" href="' + base + 'call">Give me a call to set a time</a></div>' +
     '<small>Prepared by Zoe, J2\u2019s AI assistant, from publicly visible information. Real people on the J2 team run every meeting.</small>';
-  wrap.appendChild(box);
+  // The report draws itself after loading, so keep re-attaching the box for a while.
+  var tries = 0;
+  var attach = function () {
+    var w = document.querySelector('.wrap') || document.body;
+    if (!document.querySelector('.j2-next') && !/Loading/.test(w.innerText.slice(0, 200))) w.appendChild(box);
+    if (++tries < 40) setTimeout(attach, 500);
+  };
+  attach();
 })();
