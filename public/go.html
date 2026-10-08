@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>J2 Software | Next step</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1a1d21;--muted:#5b6470;--line:#e3e6ea;--red:#d4232a;--ok:#1f7a3f}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1b1e22;--text:#eceef1;--muted:#9aa3ad;--line:#2b3036;--red:#ef4b51;--ok:#4cc27a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;max-width:460px;width:100%;padding:28px}
+.brand{font-weight:800;color:var(--red);letter-spacing:.5px;font-size:.85rem;margin-bottom:14px}
+h1{font-size:1.3rem;margin:0 0 8px}
+p{margin:0 0 16px;color:var(--muted)}
+button{background:var(--red);color:#fff;border:0;border-radius:8px;padding:12px 18px;font-size:1rem;cursor:pointer;width:100%;font-weight:600}
+button:disabled{opacity:.6;cursor:default}
+.ok{color:var(--ok)}
+.hide{display:none}
+small{color:var(--muted);display:block;margin-top:14px}
+a{color:var(--red)}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand">J2 SOFTWARE</div>
+  <section id="ask">
+    <h1 id="title">One moment</h1>
+    <p id="lead"></p>
+    <button id="go">Confirm</button>
+  </section>
+  <section id="done" class="hide">
+    <h1 class="ok" id="doneTitle">Done</h1>
+    <p id="doneText"></p>
+  </section>
+  <section id="fail" class="hide">
+    <h1>That did not work</h1>
+    <p>Just reply to our email and tell us what you would like. We will sort it out.</p>
+  </section>
+  <small>Sent by Zoe, J2's AI assistant. Real people on the J2 team run every meeting. You can ask for a person at any time.</small>
+</main>
+<script>
+(function(){
+  var qs = new URLSearchParams(location.search);
+  var t = qs.get('t') || '', a = qs.get('a') || '';
+  var show = function(id){ ['ask','done','fail'].forEach(function(s){ document.getElementById(s).classList.toggle('hide', s !== id) }) };
+  var $ = function(id){ return document.getElementById(id) };
+  var COPY = {
+    book: { title: 'Book a time with the J2 team', lead: 'A 20-minute call with one of our security specialists to walk you through what we found. No obligation.', btn: 'Yes, book me in',
+            doneTitle: 'Thanks, you are on the list', doneText: 'The J2 team will email you a few times today. Pick the one that suits you.' },
+    call: { title: 'Get a quick call to set up a time', lead: 'Zoe, our AI assistant, will call you within one working day to find a time that suits you. Prefer a person? Just reply to the email.', btn: 'Yes, call me',
+            doneTitle: 'Thanks, we will call you', doneText: 'Expect a call within one working day, during office hours. If you would rather we emailed, just reply to the email.' }
+  };
+  var c = COPY[a];
+  if (!/^[0-9a-f-]{36}$/i.test(t) || !c) { show('fail'); return; }
+  $('title').textContent = c.title; $('lead').textContent = c.lead; $('go').textContent = c.btn;
+  $('doneTitle').textContent = c.doneTitle; $('doneText').textContent = c.doneText;
+  $('go').onclick = function(){
+    var b = $('go'); b.disabled = true; b.textContent = 'Working...';
+    fetch('https://rxfzecmdsvrejebvxtfe.supabase.co/functions/v1/scorecard?t=' + encodeURIComponent(t), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: a })
+    }).then(function(r){ return r.ok ? r.json() : Promise.reject() }).then(function(d){
+      if (a === 'book' && d.booking_url) { location.href = d.booking_url; return; }
+      show('done');
+    }).catch(function(){ show('fail') });
+  };
+})();
+</script>
+</body>
+</html>
