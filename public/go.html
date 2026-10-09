@@ -4,27 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>J2 Software | Next step</title>
+<title>Next step | J2 Software</title>
+<link rel="icon" href="/brand/j2-icon-64.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--text:#1a1d21;--muted:#5b6470;--line:#e3e6ea;--red:#d4232a;--ok:#1f7a3f}
-@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1b1e22;--text:#eceef1;--muted:#9aa3ad;--line:#2b3036;--red:#ef4b51;--ok:#4cc27a}}
+:root{--bg:#f4f4f4;--card:#fff;--text:#111;--muted:#555;--line:#e2e2e2;--red:#D31322;--ok:#019C83}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0b0b;--card:#161616;--text:#f2f2f2;--muted:#a8a8a8;--line:#2a2a2a;--red:#e8353f;--ok:#2fc2a6}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 "Montserrat",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;max-width:460px;width:100%;padding:28px}
-.brand{font-weight:800;color:var(--red);letter-spacing:.5px;font-size:.85rem;margin-bottom:14px}
 h1{font-size:1.3rem;margin:0 0 8px}
 p{margin:0 0 16px;color:var(--muted)}
-button{background:var(--red);color:#fff;border:0;border-radius:8px;padding:12px 18px;font-size:1rem;cursor:pointer;width:100%;font-weight:600}
+button{background:var(--red);color:#fff;border:0;border-radius:8px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer;width:100%}
 button:disabled{opacity:.6;cursor:default}
 .ok{color:var(--ok)}
 .hide{display:none}
 small{color:var(--muted);display:block;margin-top:14px}
 a{color:var(--red)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:20px;font-weight:900;letter-spacing:.4px;font-size:.9rem;color:var(--text)}.brand img{width:36px;height:36px}.zoe{display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}.zoe img{width:40px;height:40px;border-radius:50%;flex-shrink:0}.zoe small{margin:0}h1{font-weight:900}
 </style>
 </head>
 <body>
 <main class="card">
-  <div class="brand">J2 SOFTWARE</div>
+  <div class="brand"><img src="/brand/j2-logo.png" alt="J2">J2 SOFTWARE</div>
   <section id="ask">
     <h1 id="title">One moment</h1>
     <p id="lead"></p>
@@ -38,7 +41,7 @@ a{color:var(--red)}
     <h1>That did not work</h1>
     <p>Just reply to our email and tell us what you would like. We will sort it out.</p>
   </section>
-  <small>Sent by Zoe, J2's AI assistant. Real people on the J2 team run every meeting. You can ask for a person at any time.</small>
+  <div class="zoe"><img src="/brand/zoe-128.png" alt="Zoe, J2's AI assistant"><small>Sent by Zoe, J2's AI assistant. Real people on the J2 team run every meeting. You can ask for a person at any time.</small></div>
 </main>
 <script>
 (function(){
